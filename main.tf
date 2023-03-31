@@ -8,14 +8,43 @@ terraform {
     encrypt        = true
   }
 }
-
 provider "aws" {
   region                  = "ap-southeast-2"
   profile                 = "PNTerraform"
   shared_credentials_file = "~/.aws/credentials"
 }
+provider "aws" {
+  alias  = "cloudfront-acm-certs"
+  region = "us-east-1"
+}
 
-# Provision for petnanny backend
+# FRONTEND: Provision for petnanny frontend - s3 static website, cdn for the s3 website endpoint and create route 53 alias recored. 
+module "pn-app-s3" {
+  source               = "./modules/s3"
+  frontend_bucket_name = var.frontend_bucket_name
+  env_prefix           = var.env_prefix
+}
+
+module "pn-app-cloudfront" {
+  source = "./modules/cloudfront"
+  providers = {
+    aws = aws.cloudfront-acm-certs
+  }
+  root_domain                    = var.root_domain
+  frontend_bucket_name           = var.frontend_bucket_name
+  env_prefix                     = var.env_prefix
+  s3_bucket_regional_domain_name = module.pn-app-s3.bucket_regional_domain_name
+}
+
+module "pn-app-route53" {
+  source                                    = "./modules/route53"
+  root_domain                               = var.root_domain
+  frontend_bucket_name                      = var.frontend_bucket_name
+  cloudfront_s3_distribution_domian_name    = module.pn-app-cloudfront.cloudfront_s3_distribution.domain_name
+  cloudfront_s3_distribution_hosted_zone_id = module.pn-app-cloudfront.cloudfront_s3_distribution.hosted_zone_id
+}
+
+# BACKEND: Provision for petnanny backend
 
 # Create VPC
 resource "aws_vpc" "pn-server-vpc" {
@@ -77,26 +106,3 @@ module "pn-server-ecs" {
   ecs_dependends_on_list = module.pn-server-alb.alb_listener_https_alb
 }
 
-# Provision for petnanny frontend - s3 static website, cdn for the s3 website endpoint and create route 53 alias recored. 
-
-module "pn-app-s3" {
-  source               = "./modules/s3"
-  frontend_bucket_name = var.frontend_bucket_name
-  env_prefix           = var.env_prefix
-}
-
-module "pn-app-cloudfront" {
-  source                         = "./modules/cloudfront"
-  root_domain                    = var.root_domain
-  frontend_bucket_name           = var.frontend_bucket_name
-  env_prefix                     = var.env_prefix
-  s3_bucket_regional_domain_name = module.pn-app-s3.bucket_regional_domain_name
-}
-
-module "pn-app-route53" {
-  source                                    = "./modules/route53"
-  root_domain                               = var.root_domain
-  frontend_bucket_name                      = var.frontend_bucket_name
-  cloudfront_s3_distribution_domian_name    = module.pn-app-cloudfront.cloudfront_s3_distribution.domain_name
-  cloudfront_s3_distribution_hosted_zone_id = module.pn-app-cloudfront.cloudfront_s3_distribution.hosted_zone_id
-}

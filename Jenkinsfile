@@ -1,11 +1,5 @@
 pipeline {
-
     agent any
-
-    environment {
-        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')''
-        AWS_SECRET_ACCESS_KEY = credentials('AWS_ACCESS_KEY_ID')
-    }
 
     stages {
         stage('TF init & plan') {
@@ -13,19 +7,21 @@ pipeline {
                 sh 'terraform init'
                 sh 'terraform validate'
                 sh 'terraform plan -out tfplan'
+                sh 'terraform show -no-cplor tfplan > tfplan.txt'
             }
         }
         stage('TF apply') {
             steps {
-                sh 'terraform apply -input=false tfplan' // input=false to disables all of Terraform's interactive prompts
+                sh 'terraform apply -input=false tfplan'
             }
         }
     }
 
     post {
         always {
-        cleanWs()
-                sh 'ls -la'
-            }
+            archiveArtifacts artifacts: 'tfplan.txt', onlyIfSuccessful: true
+            cleanWs()
+            sh 'ls -la'
+        }
     }
 }
