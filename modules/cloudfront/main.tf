@@ -18,8 +18,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
   default_cache_behavior {
     compress         = true
-    allowed_methods  = ["GET", "HEAD"]
-    cached_methods   = ["GET", "HEAD"]
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
     target_origin_id = "s3-${var.frontend_bucket_name}"
     # "s3-dev-pn-app-bucket"
 
@@ -52,7 +52,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    acm_certificate_arn = "arn:aws:acm:us-east-1:312518712322:certificate/5e24b57c-24a0-4f27-b811-66c430b94a3c"
+    acm_certificate_arn = data.aws_acm_certificate.issued_ssl_cert.arn
     ssl_support_method = "sni-only"
   }
 

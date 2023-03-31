@@ -1,7 +1,15 @@
-variable "root_domain" {}
+variable "root_domain" {
+    description = "root domain name"
+}
 
-variable "alb_dns_name" {}
+variable "alb_dns_name" {
+    description = "application load balancer dns name"
+}
 
-variable "alb_zone_id" {}
+variable "alb_zone_id" {
+    description = "application load balancer zone id"
+}
 
-variable "env_prefix" {}
+variable "env_prefix" {
+    description = "environment prefix"
+}
